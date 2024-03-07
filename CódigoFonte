@@ -1,0 +1,137 @@
+#include <Keypad.h>
+#include <LiquidCrystal.h>
+
+LiquidCrystal lcd(13, 12, 11, 10, 9, 8);
+long first = 0;
+long second = 0;
+char operatorSymbol = ' ';
+bool isWaitingForAnswer = false;
+String userAnswer = "";
+
+const byte ROWS = 4;
+const byte COLS = 4;
+
+char keys[ROWS][COLS] = {
+  {'1', '2', '3', '+'},
+  {'4', '5', '6', '-'},
+  {'7', '8', '9', '*'},
+  {'C', '0', '=', '/'}
+};
+
+byte rowPins[ROWS] = {7, 6, 5, 4};
+byte colPins[COLS] = {3, 2, 1, 0};
+
+Keypad customKeypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+void setup() {
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Bem Vindo Aluno!");
+  lcd.setCursor(0, 1);
+  delay(2000);
+  lcd.clear();
+}
+
+void loop() {
+  char customKey = customKeypad.getKey();
+  
+  if (!isWaitingForAnswer) {
+    switch (customKey) {
+      case '0' ... '9':
+        lcd.print(customKey);
+        if (operatorSymbol == ' ') {
+          first = first * 10 + (customKey - '0');
+        } else {
+          second = second * 10 + (customKey - '0');
+        }
+        break;
+
+      case '+':
+      case '-':
+      case '*':
+      case '/':
+        operatorSymbol = customKey;
+        lcd.print("");
+        lcd.print(operatorSymbol);
+        second = 0;
+        break;
+
+      case '=':
+        isWaitingForAnswer = true;
+        lcd.setCursor(0, 1);
+        lcd.print("= ");
+        userAnswer = "";
+        break;
+
+      case 'C':
+        clearCalculator();
+        break;
+    }
+  } else {
+    if (customKey >= '0' && customKey <= '9') {
+      lcd.print(customKey);
+      userAnswer += customKey;
+    } else if (customKey == '=') {
+      checkAnswer();
+    } else if (customKey == 'C') {
+      clearCalculator();
+    }
+  }
+}
+
+void clearCalculator() {
+  first = 0;
+  second = 0;
+  operatorSymbol = ' ';
+  isWaitingForAnswer = false;
+  userAnswer = "";
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  if (operatorSymbol != ' ') {
+    lcd.print(first);
+    lcd.print(operatorSymbol);
+    lcd.print(second);
+  }
+}
+
+void checkAnswer() {
+  long result = 0;
+  if (operatorSymbol == '+') {
+    result = first + second;
+  } else if (operatorSymbol == '-') {
+    result = first - second;
+  } else if (operatorSymbol == '*') {
+    result = first * second;
+  } else if (operatorSymbol == '/') {
+    result = first / second;
+  }
+  
+  long userResult = userAnswer.toInt();
+  
+  if (userResult == result) {
+    lcd.setCursor(0, 0);
+    lcd.print(first);
+    lcd.print(operatorSymbol);
+    lcd.print(second);
+    lcd.print(" = ");
+    lcd.print(result);
+    lcd.setCursor(0, 1);
+    lcd.print("Parabens!");
+    while (true) {
+      char customKey = customKeypad.getKey();
+      if (customKey == 'C') {
+        clearCalculator();
+        break;
+      }
+    }
+  } else {
+    lcd.setCursor(0, 2);
+    lcd.print("Tente novamente!");
+    delay(2000);
+    lcd.setCursor(0, 2);
+    lcd.print("                ");
+    lcd.setCursor(0, 1);
+    lcd.print("= ");
+    userAnswer = "";
+  }
+}
